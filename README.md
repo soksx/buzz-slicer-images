@@ -1,6 +1,6 @@
 # Buzz Slicer runner images
 
-Private OCI images for the `buzz-backend-slicer` provider. The initial runner
+Public OCI images for the `buzz-backend-slicer` provider. The initial runner
 is `ghcr.io/soksx/buzz-slicer-codex` for `linux/arm64` Slicer for Mac hosts.
 
 The image provides Bun, `buzz`, `buzz-acp`, `buzz-relay`,
@@ -33,6 +33,7 @@ Restart the Slicer daemon after changing its image. In Buzz Desktop, choose
 `host_group: sbox`, leave `template_commit` empty, and choose `runner: codex`.
 Each new agent then gets an ephemeral VM from the digest-pinned root image.
 
-The GHCR package must remain private but readable by every Slicer daemon. Use
-a registry credential or a private LAN registry for each daemon; never embed a
-registry token in this repository, a Dockerfile, or Buzz provider settings.
+The GHCR package is public, so Slicer can pull it without a registry credential.
+Never embed registry tokens in this repository, a Dockerfile, or Buzz provider
+settings. If you publish a private derivative, provide its credential to each
+Slicer daemon through the daemon's secret configuration instead.
