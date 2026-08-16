@@ -41,9 +41,15 @@ COPY --from=buzz-build /src/target/release/buzz /usr/local/bin/buzz
 COPY --from=buzz-relay-dist /usr/local/bin/buzz-relay /usr/local/bin/buzz-relay
 COPY --from=buzz-build /src/target/release/git-credential-nostr /usr/local/bin/git-credential-nostr
 
+# Codex ACP v1.2.0's default workspace-write mode disables network access even
+# when CODEX_CONFIG permits the Buzz relay. The Buzz provider sets a relay-only
+# network_proxy allow rule, so enable this gate without relaxing the
+# workspace-write filesystem policy.
 RUN apt-get update -qy && apt-get install -qy --no-install-recommends \
       ca-certificates curl git libssl3 \
     && npm install --global "@openai/codex@${CODEX_VERSION}" "@agentclientprotocol/codex-acp@${CODEX_ACP_VERSION}" \
+    && node -e 'const fs = require("fs"); const path = "/usr/local/lib/node_modules/@agentclientprotocol/codex-acp/dist/index.js"; const pattern = /type: "workspaceWrite",\s+writableRoots: \[\],\s+networkAccess: false,/; const source = fs.readFileSync(path, "utf8"); if (source.match(pattern)?.length !== 1) throw new Error("unexpected codex-acp workspace sandbox block"); const replacement = [`type: "workspaceWrite",`, `      writableRoots: [],`, `      networkAccess: true,`].join(String.fromCharCode(10)); fs.writeFileSync(path, source.replace(pattern, replacement));' \
+    && test "$(stat -c '%a' /usr/local/lib/node_modules/@agentclientprotocol/codex-acp/dist/index.js)" = 755 \
     && case "$TARGETARCH" in \
          arm64) rtk_archive='rtk-aarch64-unknown-linux-gnu.tar.gz'; rtk_sha='80a746dd305ef944ff50ef011ae4ce3878dd5ba88dfe35d859d05498191637c3' ;; \
          *) echo "unsupported RTK architecture: $TARGETARCH" >&2; exit 1 ;; \
